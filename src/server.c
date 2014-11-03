@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
      int n;
      int ticketarray[9];
      int usedticket[9];
-     int counter = 0;
+     int counter;
      
      srand(time(NULL));
      
@@ -32,7 +32,6 @@ int main(int argc, char *argv[])
      {
 		 ticketarray[counter] = rand() % 90000 + 10000;
 		 usedticket[counter] = 0;
-		 printf("Ticket number %i: %i\n",counter, ticketarray[counter]);
 	 }
      
      if (argc < 2) 
@@ -80,120 +79,132 @@ int main(int argc, char *argv[])
      
 	 //printf("Here is the message: %s\n",buffer);
 	 //n = write(newsockfd,"I got your message",18);
-		
-	 if(strstr(buffer, "buy"))
+	 while(strstr(buffer, "quit") == NULL)
 	 {
-		 //variables needed
-		 char buybuffer[256];
-		 int x;
-		 int flag = 0;
-		 
-		 //start the string with something friendly
-		 strcat(buybuffer, "Your ticket ID is: ");
-		 
-		 
-		 //look for a valid ticket number
-		 //then set it to 0 so we don't use it again
-		 for(x = 0; x < 10; x++)
-		 {
-			 //a valid ticket is defined as not 0, and
-			 //not having a corresponding value in the
-			 //used ticket array.
-			 
-			 //if the ticket is used, ticketarray[x] is 0,
-			 //and usedticket[x] = whatever the ticket number is
-			 if(ticketarray[x] != 0 && usedticket[x] == 0)
-			 {
-				 //buffer to hold the ticket number
-				 char charbuffer[128];
-				 
-				 //convert it from an int to a char through sprintf()
-				 sprintf(charbuffer, "%i", ticketarray[x]);
-				 
-				 //concatenate it to the buybuffer above
-				 strcat(buybuffer, charbuffer);
-				 
-				 //assign its value to the corresponding usedticket index
-				 usedticket[x] = ticketarray[x];
-				 
-				 //we have a valid ticket, so set the flag to 1
-				 flag = 1;
-				 break;
-			 }
-		 }
-		 
-		 //if we don't have at least one ticket
-		 if(flag == 0)
-		 {
-			 //no more valid tickets
-			 n = write(newsockfd, "Error, no more tickets!\n", 25);
-		 }
-		 
-		 //if we have atleast one valid ticket left
-		 if(flag == 1)
-		 {
-			 //we  have a valid ticket left
-			 n = write(newsockfd, buybuffer, strlen(buybuffer));
-		 }
-		 if (n < 0) 
-		 {
-			error("ERROR writing to socket");
-		 }
-  
-	}
-	
-	//cancel command
-	if(strstr(buffer, "cancel"))
-	{
-		//necessary variables
-		char *cancelbuffer;
-		
-		int cancelID;
-		int counter;
-		
-		//tokenize the command to get to the ticket
-		//number sent to us
-		
-		//"refund"
-		cancelbuffer = strtok(buffer, " ");
-		//ticket ID
-		cancelbuffer = strtok(NULL, " ");
-		
-		//cancelID now holds the ticket number
-		//so convert it to a integer and store it
-		cancelID = atoi(cancelbuffer);
-		
-		char refundbuffer[256];
-		
-		//search for the given ticket ID in the usedticket
-		//array
-		for(counter = 0; counter < 10; counter++)
+		if(strstr(buffer, "buy"))
 		{
-			//if we found a match
-			if(cancelID == usedticket[counter])
+			//variables needed
+			char buybuffer[256];
+			int x;
+			int flag = 0;
+			
+			bzero(buybuffer,256);
+		 
+			//start the string with something friendly
+			strcat(buybuffer, "Your ticket ID is: ");
+		 
+		 
+			//look for a valid ticket number
+			//then set it to 0 so we don't use it again
+			for(x = 0; x < 10; x++)
 			{
-			 //format the string we want to send back	
-			 strcat(refundbuffer, "We refunded your ticket: ");
-			 strcat(refundbuffer, cancelbuffer);
+				//a valid ticket is defined as not 0, and
+				//not having a corresponding value in the
+				//used ticket array.
 			 
-			 //set the usedticket spot to 0, since we don't use
-			 //it anymore
-			 usedticket[counter] = 0;
-			 
-			 n = write(newsockfd, refundbuffer, strlen(refundbuffer));
-		    }
-		    
-		    //no match, no ticket to refund
-		    else
-		    {
-			 strcat(refundbuffer, "Error, invalid ticket!");
-			 
-			 n = write(newsockfd, refundbuffer, strlen(refundbuffer));
+				//if the ticket is used, ticketarray[x] is 0,
+				//and usedticket[x] = whatever the ticket number is
+				if(ticketarray[x] != 0 && usedticket[x] == 0)
+				{
+					//buffer to hold the ticket number
+					char charbuffer[128];
+				 
+					bzero(charbuffer,128);
+					//convert it from an int to a char through sprintf()
+					sprintf(charbuffer, "%i", ticketarray[x]);
+					//slept for debug purposes...still might need it
+					sleep(2);
+				 
+					//concatenate it to the buybuffer above
+					strcat(buybuffer, charbuffer);
+				 
+					//assign its value to the corresponding usedticket index
+					usedticket[x] = ticketarray[x];
+					ticketarray[x] = 0;
+				 
+					//we have a valid ticket, so set the flag to 1
+					flag = 1;
+					break;
+				}
 			}
-	    }
+		 
+			//if we don't have at least one ticket
+			if(flag == 0)
+			{
+				//no more valid tickets
+				n = write(newsockfd, "Error, no more tickets!\n", 25);
+			}
+		 
+			//if we have atleast one valid ticket left
+			if(flag == 1)
+			{
+				//we  have a valid ticket left
+				n = write(newsockfd, buybuffer, strlen(buybuffer));
+			}
+			
+			if (n < 0) 
+			{
+				error("ERROR writing to socket");
+			}
+  
+		}
 	
-    }
+		//cancel command
+		if(strstr(buffer, "cancel"))
+		{
+			//necessary variables
+			char *cancelbuffer;
+		
+			int cancelID;
+			int counter;
+		
+			//tokenize the command to get to the ticket
+			//number sent to us
+		
+			//"refund"
+			cancelbuffer = strtok(buffer, " ");
+			//ticket ID
+			cancelbuffer = strtok(NULL, " ");
+		
+			//cancelID now holds the ticket number
+			//so convert it to a integer and store it
+			cancelID = atoi(cancelbuffer);
+		
+			char refundbuffer[256];
+		
+			bzero(refundbuffer,256);
+			//search for the given ticket ID in the usedticket
+			//array
+			for(counter = 0; counter < 10; counter++)
+			{
+				//if we found a match
+				if(cancelID == usedticket[counter])
+				{
+					//format the string we want to send back	
+					strcat(refundbuffer, "We refunded your ticket: ");
+					strcat(refundbuffer, cancelbuffer);
+			 
+					//set the usedticket spot to 0, since we don't use
+					//it anymore
+					usedticket[counter] = 0;
+			 
+					n = write(newsockfd, refundbuffer, strlen(refundbuffer));
+		    	}
+		    
+				//no match, no ticket to refund
+				else
+				{
+					strcat(refundbuffer, "Error, invalid ticket!");
+			 
+					n = write(newsockfd, refundbuffer, strlen(refundbuffer));
+				}
+			}
 	
+		}
+		
+     bzero(buffer,256);
+     n = read(newsockfd,buffer,255);	
+	}
 	//close and be done
 	close(newsockfd);
 	close(sockfd);

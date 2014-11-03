@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h> 
+#include <time.h>
 
 void error(const char *msg)
 {
@@ -15,7 +16,7 @@ void error(const char *msg)
 
 int main(int argc, char *argv[])
 {
-    int sockfd, portno, n;
+    int sockfd, portno, n, chance;
     struct sockaddr_in serv_addr;
     struct hostent *server;
 
@@ -52,25 +53,48 @@ int main(int argc, char *argv[])
         error("ERROR connecting");
     }
     
-    printf("Please enter the message: ");
-    bzero(buffer,256);
-    fgets(buffer,255,stdin);
-    n = write(sockfd,buffer,strlen(buffer));
+    //printf("Please enter the message: ");
+    srand(time(NULL));
+    int inputCounter;
+    for(inputCounter = 0; inputCounter < 7; inputCounter++)
+    {
+        //follows the 90% buy and 10% cancel rule on moodle
+       chance = rand() % 10;
+       // 1/10 chance to get cancel...aka 10%
+       if(chance == 9)
+       {
+            bzero(buffer,256);
+            strcpy(buffer, "cancel");
+       }
+       // 9/10 chance to get buy...aka 90%
+       else
+       {
+            bzero(buffer,256);
+            strcpy(buffer, "buy");
+       }   
+
+        n = write(sockfd,buffer,strlen(buffer));
     
-    if (n < 0) 
-    {     
-      error("ERROR writing to socket");
+      if (n < 0) 
+      {     
+        error("ERROR writing to socket");
+      }
+    
+     bzero(buffer,256);
+     n = read(sockfd,buffer,255);
+    
+     if (n < 0) 
+      {     
+         error("ERROR reading from socket");
+      }
+
+        printf("%s\n",buffer);
     }
-    
-    bzero(buffer,256);
-    n = read(sockfd,buffer,255);
-    
-    if (n < 0) 
-    {     
-       error("ERROR reading from socket");
-    }
-    
-    printf("%s\n",buffer);
+
+	bzero(buffer,256);
+	strcpy(buffer, "quit");
+	write(sockfd,buffer,strlen(buffer));
+	
     close(sockfd);
     return 0;
 }
