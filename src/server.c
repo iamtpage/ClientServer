@@ -9,6 +9,11 @@
 #include <netinet/in.h>
 #include <time.h>
 
+int ticketarray[9];
+int usedticket[9];
+
+void forkit(int sock);
+
 void error(const char *msg)
 {
     perror(msg);
@@ -19,12 +24,9 @@ int main(int argc, char *argv[])
 {
      int sockfd, newsockfd, portno;
      socklen_t clilen;
-     char buffer[256];
      struct sockaddr_in serv_addr, cli_addr;
-     int n;
-     int ticketarray[9];
-     int usedticket[9];
      int counter;
+     pid_t pid;
      
      srand(time(NULL));
      
@@ -69,17 +71,50 @@ int main(int argc, char *argv[])
 		error("ERROR on accept");
 	 }
      
-     bzero(buffer,256);
-     n = read(newsockfd,buffer,255);
+     int counter = 0;
      
-     if (n < 0) 
+     //we don't want it running indefinitely, so just give it time to take the connections
+     while (counter < 50000) 
      {
-		error("ERROR reading from socket");
-	 }
+         newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+         if (newsockfd < 0)
+         { 
+             error("ERROR on accept");
+         }
+         
+         pid = fork();
+         
+         if (pid < 0)
+         {
+             error("ERROR on fork");
+         }
+         
+         if (pid == 0)  
+         {
+             close(sockfd);
+             forkit(newsockfd);
+             exit(0);
+         }
      
-	 //printf("Here is the message: %s\n",buffer);
-	 //n = write(newsockfd,"I got your message",18);
-	 while(strstr(buffer, "quit") == NULL)
+		counter++;
+	}
+
+}
+void forkit(int sock)
+{
+   int n;
+   char buffer[256];
+   
+      
+   bzero(buffer,256);
+   n = read(sock,buffer,255);
+   if (n < 0) error("ERROR reading from socket");
+   printf("Here is the message: %s\n",buffer);
+   //n = write(sock,"I got your message",18);
+   if (n < 0) error("ERROR writing to socket");
+   
+   
+   	 while(strstr(buffer, "quit") == NULL)
 	 {
 		if(strstr(buffer, "buy"))
 		{
@@ -132,14 +167,14 @@ int main(int argc, char *argv[])
 			if(flag == 0)
 			{
 				//no more valid tickets
-				n = write(newsockfd, "Error, no more tickets!\n", 25);
+				n = write(sock, "Error, no more tickets!\n", 25);
 			}
 		 
 			//if we have atleast one valid ticket left
 			if(flag == 1)
 			{
 				//we  have a valid ticket left
-				n = write(newsockfd, buybuffer, strlen(buybuffer));
+				n = write(sock, buybuffer, strlen(buybuffer));
 			}
 			
 			if (n < 0) 
@@ -188,7 +223,7 @@ int main(int argc, char *argv[])
 					//it anymore
 					usedticket[counter] = 0;
 			 
-					n = write(newsockfd, refundbuffer, strlen(refundbuffer));
+					n = write(sock, refundbuffer, strlen(refundbuffer));
 		    	}
 		    
 				//no match, no ticket to refund
@@ -196,17 +231,15 @@ int main(int argc, char *argv[])
 				{
 					strcat(refundbuffer, "Error, invalid ticket!");
 			 
-					n = write(newsockfd, refundbuffer, strlen(refundbuffer));
+					n = write(sock, refundbuffer, strlen(refundbuffer));
 				}
 			}
 	
 		}
 		
      bzero(buffer,256);
-     n = read(newsockfd,buffer,255);	
+     n = read(sock,buffer,255);	
 	}
 	//close and be done
-	close(newsockfd);
-	close(sockfd);
-	return 0;
+	close(sock);
 }
