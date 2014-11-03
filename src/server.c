@@ -71,10 +71,10 @@ int main(int argc, char *argv[])
 		error("ERROR on accept");
 	 }
      
-     int counter = 0;
+     int counter3 = 0;
      
      //we don't want it running indefinitely, so just give it time to take the connections
-     while (counter < 50000) 
+     while (counter3 < 50000) 
      {
          newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
          if (newsockfd < 0)
@@ -96,9 +96,9 @@ int main(int argc, char *argv[])
              exit(0);
          }
      
-		counter++;
+		counter3++;
 	}
-
+	return 0;
 }
 void forkit(int sock)
 {
