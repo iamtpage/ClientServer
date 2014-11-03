@@ -1,0 +1,14 @@
+#!/bin/bash
+
+gcc -o server server.c
+gcc -o client client.c
+
+echo "We didn't have time to add in support for forking() the process to\n"
+echo "allow simultaneous clients, and very rarely the program segfaults.\n"
+echo "If you just run the program another time, it works fine.\n\n"
+
+./server 21511 &
+
+sleep 2
+
+./client localhost 21511
